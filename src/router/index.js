@@ -157,6 +157,34 @@ export const dynamicRoutes = [
         meta: { title: '修改生成配置', activeMenu: '/tool/gen' }
       }
     ]
+  },
+  {
+    path: '/project/task-history',
+    component: Layout,
+    hidden: true,
+    permissions: ['project:history:list'],
+    children: [
+      {
+        path: 'index/:taskId(\\d+)',
+        component: () => import('@/views/project/task/history'),
+        name: 'History',
+        meta: { title: '任务历史', activeMenu: '/project/task' }
+      }
+    ]
+  },
+  {
+    path: '/project/milestone-milestoneTask',
+    component: Layout,
+    hidden: true,
+    permissions: ['project:task:list'],
+    children: [
+      {
+        path: 'index/:milestoneId(\\d+)',
+        component: () => import('@/views/project/milestone/milestoneTask'),
+        name: 'MilestoneTask',
+        meta: { title: '里程碑详情', activeMenu: '/project/milestone' }
+      }
+    ]
   }
 ]
 
