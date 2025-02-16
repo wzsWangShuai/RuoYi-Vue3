@@ -5,34 +5,34 @@
         <el-form-item label="项目" prop="projId">
           <el-select v-model="filterParams.projId" placeholder="请选择项目" clearable>
             <el-option
-              v-for="proj in projOptions"
-              :key="proj.id"
-              :label="proj.label"
-              :value="proj.id"
+                v-for="proj in projOptions"
+                :key="proj.id"
+                :label="proj.label"
+                :value="proj.id"
             />
           </el-select>
         </el-form-item>
         <el-form-item label="负责人" prop="ownerId">
           <el-input
-            v-model="filterParams.ownerId"
-            placeholder="请输入负责人ID"
-            clearable
+              v-model="filterParams.ownerId"
+              placeholder="请输入负责人ID"
+              clearable
           />
         </el-form-item>
         <el-form-item label="开始时间" prop="startTime">
           <el-date-picker clearable
-            v-model="filterParams.startTime"
-            type="date"
-            value-format="YYYY-MM-DD"
-            placeholder="请选择开始时间">
+                          v-model="filterParams.startTime"
+                          type="date"
+                          value-format="YYYY-MM-DD"
+                          placeholder="请选择开始时间">
           </el-date-picker>
         </el-form-item>
         <el-form-item label="结束时间" prop="endTime">
           <el-date-picker clearable
-            v-model="filterParams.endTime"
-            type="date"
-            value-format="YYYY-MM-DD"
-            placeholder="请选择结束时间">
+                          v-model="filterParams.endTime"
+                          type="date"
+                          value-format="YYYY-MM-DD"
+                          placeholder="请选择结束时间">
           </el-date-picker>
         </el-form-item>
         <el-form-item>
@@ -46,11 +46,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import {ref, onMounted, watch} from 'vue';
 import Gantt from 'frappe-gantt';
-import { listProject } from "@/api/project/project.js";
-import { listMilestone } from "@/api/project/milestone.js";
-import { listTask } from "@/api/project/task/task.js";
+import {listProject} from "@/api/project/project.js";
+import {listMilestone, updateMilestone} from "@/api/project/milestone.js";
+import {listTask, updateTask} from "@/api/project/task/task.js";
 
 const projOptions = ref([]);
 const filterParams = ref({
@@ -82,34 +82,33 @@ function fetchData() {
     const milestones = milestonesResponse.data;
     const ganttData = [];
 
-    debugger
     tasks.forEach(task => {
       ganttData.push({
         id: task.taskId.toString(),
         name: task.taskName,
         start: task.planStartDate,
         end: task.planEndDate,
-        progress: task.actualEndDate ? 100 : 0, // 假设实际完成时间存在则进度为100%
-        dependencies: task.parentId ? [task.parentId.toString()] : [],
+        progress: task.taskSchedule,
+        dependencies: task.dependencyId ? [task.dependencyId.toString()] : [],
         custom_class: 'bar-task',
         projId: task.projId,
         ownerId: task.ownerId
       });
     });
 
-    // milestones.forEach(milestone => {
-    //   ganttData.push({
-    //     id: milestone.milestoneId.toString(),
-    //     name: milestone.milestoneName,
-    //     start: milestone.deadline,
-    //     end: milestone.deadline,
-    //     progress: milestone.status === '1' ? 100 : 0, // 假设状态为1则进度为100%
-    //     dependencies: [],
-    //     custom_class: 'bar-milestone',
-    //     projId: milestone.projId,
-    //     ownerId: null // 假设里程碑没有负责人
-    //   });
-    // });
+    milestones.forEach(milestone => {
+      ganttData.push({
+        id: milestone.milestoneId.toString(),
+        name: milestone.milestoneName,
+        start: milestone.deadline,
+        end: milestone.deadline,
+        progress: milestone.status === '1' ? 100 : 0, // 假设状态为1则进度为100%
+        dependencies: [],
+        custom_class: 'bar-milestone',
+        projId: milestone.projId,
+        ownerId: null // 假设里程碑没有负责人
+      });
+    });
 
     renderGantt(ganttData);
   });
@@ -125,7 +124,7 @@ function renderGantt(tasks) {
   gantt = new Gantt(ganttChart.value, tasks, {
     view_mode: 'Month',
     on_click: task => console.log(task),
-    on_date_change: (task, start, end) => console.log(task, start, end),
+    on_date_change: (task, start, end) => handleDateChange(task, start, end),
     on_progress_change: task => console.log(task),
     on_view_change: mode => console.log(mode),
     on_task_add: task => console.log(task),
@@ -134,6 +133,26 @@ function renderGantt(tasks) {
     date_format: 'YYYY-MM-DD' // 确保日期格式正确
   });
 }
+
+// 处理日期变化事件
+function handleDateChange(task, start, end) {
+  console.log('Task date changed:', task, start, end);
+  const params = {
+    taskId: task.id,
+    planStartDate: start,
+    planEndDate: end
+  };
+  updateTask(params)
+      .then(response => {
+        console.log('Task updated successfully:', response);
+      })
+// **处理错误情况
+    .catch(error => {
+        console.error('Failed to update task:', error);
+        // 可以在这里回滚本地任务数据，或者显示错误提示
+      });
+}
+
 
 // 应用筛选
 function applyFilters() {

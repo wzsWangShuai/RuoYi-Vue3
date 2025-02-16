@@ -16,7 +16,7 @@
         <!--任务数据-->
         <pane size="84">
           <el-col>
-            <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+            <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="83px">
               <el-form-item label="任务名称" prop="taskName">
                 <el-input
                     v-model="queryParams.taskName"
@@ -25,10 +25,10 @@
                     @keyup.enter="handleQuery"
                 />
               </el-form-item>
-              <el-form-item label="负责人ID" prop="ownerId">
+              <el-form-item label="负责人" prop="ownerId">
                 <el-input
                     v-model="queryParams.ownerId"
-                    placeholder="请输入负责人ID"
+                    placeholder="请输入负责人"
                     clearable
                     @keyup.enter="handleQuery"
                 />
@@ -43,7 +43,7 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="状态" prop="status">
+              <el-form-item label="状态" prop="status" class="break-line">
                 <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
                   <el-option
                       v-for="dict in task_status"
@@ -53,7 +53,7 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="计划开始时间" prop="planStartDate">
+              <el-form-item label="计划开始时间" prop="planStartDate" label-width="96px">
                 <el-date-picker clearable
                                 v-model="queryParams.planStartDate"
                                 type="date"
@@ -61,7 +61,7 @@
                                 placeholder="选择计划开始时间">
                 </el-date-picker>
               </el-form-item>
-              <el-form-item label="计划结束时间" prop="planEndDate">
+              <el-form-item label="计划结束时间" prop="planEndDate" label-width="96px">
                 <el-date-picker clearable
                                 v-model="queryParams.planEndDate"
                                 type="date"
@@ -69,7 +69,7 @@
                                 placeholder="选择计划结束时间">
                 </el-date-picker>
               </el-form-item>
-              <el-form-item label="实际完成时间" prop="actualEndDate">
+              <el-form-item label="实际完成时间" prop="actualEndDate" label-width="96px">
                 <el-date-picker clearable
                                 v-model="queryParams.actualEndDate"
                                 type="date"
@@ -119,8 +119,8 @@
                   </router-link>
                 </template>
               </el-table-column>
-              <el-table-column label="任务描述" align="center" prop="description" />
-              <el-table-column label="负责人ID" align="center" prop="ownerId" />
+              <el-table-column label="任务描述" align="center" prop="description" show-overflow-tooltip />
+              <el-table-column label="负责人" align="center" prop="ownerId" />
               <el-table-column label="优先级" align="center" prop="priority">
                 <template #default="scope">
                   <dict-tag :options="task_priority" :value="scope.row.priority"/>
@@ -148,6 +148,11 @@
               </el-table-column>
               <el-table-column label="预估工时" align="center" prop="estimatedHours" />
               <el-table-column label="实际工时" align="center" prop="actualHours" />
+              <el-table-column label="完成进度" align="center">
+                <template #default="scope">
+                  <el-progress :percentage="scope.row.taskSchedule" :color="progressColor(scope.row.taskSchedule)" />
+                </template>
+              </el-table-column>
               <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
                 <template #default="scope">
                   <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['project:task:edit']">修改</el-button>
@@ -163,17 +168,29 @@
     <!-- 添加或修改任务管理对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="taskRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="父任务ID" prop="parentId">
+        <el-form-item label="上级任务" prop="parentId">
           <el-tree-select
             v-model="form.parentId"
             :data="taskOptions"
             :props="{ value: 'taskId', label: 'taskName', children: 'children' }"
             value-key="taskId"
-            placeholder="请选择父任务ID"
+            placeholder="请选择父任务"
             check-strictly
           />
         </el-form-item>
-        <el-form-item label="所属项目ID" prop="projId">
+        <el-form-item label="前置任务" prop="dependencyId">
+          <el-tree-select
+              v-model="form.dependencyId"
+              :data="taskOptions"
+              :props="{ value: 'taskId', label: 'taskName', children: 'children' }"
+              value-key="taskId"
+              placeholder="请选择前置任务"
+              check-strictly
+              clearable
+              :multiple="false"
+          />
+        </el-form-item>
+        <el-form-item label="所属项目" prop="projId">
           <el-select v-model="form.projId" placeholder="请选择所属项目">
             <el-option
                 v-for="proj in projOptions"
@@ -184,13 +201,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="任务名称" prop="taskName">
-          <el-input v-model="form.taskName" placeholder="请输入任务名称" />
+          <el-input v-model="form.taskName" placeholder="请输入任务名称" @blur="generateDesc" />
         </el-form-item>
         <el-form-item label="任务描述" prop="description">
           <el-input v-model="form.description" type="textarea" placeholder="请输入内容" />
         </el-form-item>
-        <el-form-item label="负责人ID" prop="ownerId">
-          <el-input v-model="form.ownerId" placeholder="请输入负责人ID" />
+        <el-form-item label="负责人" prop="ownerId">
+          <el-input v-model="form.ownerId" placeholder="请输入负责人工号" />
         </el-form-item>
         <el-form-item label="优先级" prop="priority">
           <el-select v-model="form.priority" placeholder="请选择优先级">
@@ -203,15 +220,17 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio
-              v-for="dict in task_status"
-              :key="dict.value"
-              :label="dict.value"
-            >{{dict.label}}</el-radio>
-          </el-radio-group>
+          <el-select v-model="form.status" placeholder="请选择状态" clearable>
+            <el-option
+                v-for="dict in task_status"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="计划开始时间" prop="planStartDate">
+
+        <el-form-item label="开始时间" prop="planStartDate">
           <el-date-picker clearable
             v-model="form.planStartDate"
             type="date"
@@ -219,7 +238,7 @@
             placeholder="选择计划开始时间">
           </el-date-picker>
         </el-form-item>
-        <el-form-item label="计划结束时间" prop="planEndDate">
+        <el-form-item label="结束时间" prop="planEndDate">
           <el-date-picker clearable
             v-model="form.planEndDate"
             type="date"
@@ -227,7 +246,7 @@
             placeholder="选择计划结束时间">
           </el-date-picker>
         </el-form-item>
-        <el-form-item label="实际完成时间" prop="actualEndDate">
+        <el-form-item label="完成时间" prop="actualEndDate">
           <el-date-picker clearable
             v-model="form.actualEndDate"
             type="date"
@@ -241,6 +260,17 @@
         <el-form-item label="实际工时" prop="actualHours">
           <el-input v-model="form.actualHours" placeholder="请输入实际工时" />
         </el-form-item>
+        <el-form-item label="任务进度" prop="taskSchedule">
+          <el-slider
+              v-model="form.taskSchedule"
+              :min="0"
+              :max="100"
+              :step="1"
+              show-input
+              input-size="small"
+              :format-tooltip="formatTooltip"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -253,10 +283,11 @@
 </template>
 
 <script setup name="Task">
-import { listTask, getTask, delTask, addTask, updateTask, projMilestoneTreeSelect, projTreeSelect } from "@/api/project/task/task";
+import { listTask, getTask, delTask, addTask, updateTask, projMilestoneTreeSelect, projTreeSelect, generateDescription } from "@/api/project/task/task";
 import {Pane, Splitpanes} from "splitpanes";
 import "splitpanes/dist/splitpanes.css";
 import useAppStore from "@/store/modules/app.js";
+import axios from "axios";
 
 const appStore = useAppStore();
 const { proxy } = getCurrentInstance();
@@ -286,7 +317,27 @@ watch(projName, val => {
 });
 
 const data = reactive({
-  form: {},
+  form: {
+    taskId: null,
+    parentId: null,
+    projId: null,
+    taskName: null,
+    description: null,
+    ownerId: null,
+    priority: null,
+    status: null,
+    planStartDate: null,
+    planEndDate: null,
+    actualEndDate: null,
+    estimatedHours: null,
+    actualHours: null,
+    createBy: null,
+    createTime: null,
+    updateBy: null,
+    updateTime: null,
+    taskSchedule: 0,
+    dependencyId: null
+  },
   queryParams: {
     taskName: null,
     ownerId: null,
@@ -298,13 +349,17 @@ const data = reactive({
   },
   rules: {
     parentId: [
-      { required: true, message: "父任务ID不能为空", trigger: "blur" }
+      { required: true, message: "父任务不能为空", trigger: "blur" }
     ],
     projId: [
-      { required: true, message: "所属项目ID不能为空", trigger: "blur" }
+      { required: true, message: "所属项目不能为空", trigger: "blur" }
     ],
     taskName: [
       { required: true, message: "任务名称不能为空", trigger: "blur" }
+    ],
+    ownerId: [
+      { required: true, message: "负责人不能为空", trigger: "change" },
+      { pattern: /^\d+$/, message: "负责人工号必须为数字", trigger: "blur" }
     ],
     priority: [
       { required: true, message: "优先级不能为空", trigger: "change" }
@@ -329,6 +384,16 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+/** 监听 status 的变化 */
+watch(
+    () => form.value.status,
+    (newStatus) => {
+      if (newStatus === '3') {
+        form.value.taskSchedule = 100; // 自动设置任务进度为 100
+      }
+    }
+);
+
 /** 查询任务管理列表 */
 function getList() {
   loading.value = true;
@@ -336,6 +401,10 @@ function getList() {
     taskList.value = proxy.handleTree(response.data, "taskId", "parentId");
     loading.value = false;
   });
+}
+
+function formatTooltip(value) {
+  return `${value}%`;
 }
 
 /** 查询项目里程下拉树结构 */
@@ -386,7 +455,9 @@ function reset() {
     createBy: null,
     createTime: null,
     updateBy: null,
-    updateTime: null
+    updateTime: null,
+    taskSchedule: 0,
+    dependencyId: null
   };
   proxy.resetForm("taskRef");
 }
@@ -418,6 +489,37 @@ function findParentId(nodes, targetId, targetName, currentParentId = null) {
     }
   }
 }
+
+function progressColor(percentage) {
+  if (percentage < 30) {
+    return '#F56C6C'; // 红色
+  } else if (percentage < 70) {
+    return '#E6A23C'; // 橙色
+  } else {
+    return '#67C23A'; // 绿色
+  }
+}
+
+async function generateDesc() {
+  // 验证 form.value 是否存在且为对象
+  if (!form.value || typeof form.value !== 'object' || !form.value.taskName) {
+    return;
+  }
+
+  try {
+    const response = await generateDescription({taskName: form.value.taskName}, {timeout: 60000});
+
+    // 防止 XSS 攻击，对描述进行转义（假设有一个 escapeHtml 函数）
+    form.value.description = response.data.description; // 设置生成的任务描述
+  } catch (error) {
+    console.error("生成任务描述失败", error);
+
+    // 提取硬编码字符串
+    const errorMessage = "生成任务描述失败，请稍后再试";
+    alert(errorMessage);
+  }
+};
+
 
 /** 搜索按钮操作 */
 function handleQuery() {
@@ -503,3 +605,17 @@ getProjMilestoneTree();
 getProjTree();
 getList();
 </script>
+
+<style scoped>
+.break-line {
+  margin-left: auto; /* 将该表单项推到行尾 */
+}
+
+.el-form-item + .el-form-item {
+  margin-left: 0; /* 确保其他表单项不被推到行尾 */
+}
+
+.el-form-item:last-child {
+  margin-left: 0; /* 确保最后一个表单项不被推到行尾 */
+}
+</style>

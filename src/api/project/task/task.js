@@ -58,3 +58,21 @@ export function projTreeSelect() {
     method: 'get'
   })
 }
+
+// 查询项目任务趋势图数据
+export function getProjectProgress() {
+  return request({
+    url: '/project/task/getProjectProgress',
+    method: 'get'
+  })
+}
+
+// 自动生成任务描述
+export function generateDescription(data, config) {
+  return request({
+    url: '/project/task/generateDescription',
+    method: 'post',
+    data: data,
+    timeout: config.timeout || 20000
+  })
+}
